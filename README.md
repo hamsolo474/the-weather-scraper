@@ -6,7 +6,7 @@ The Weather Scraper downloads high-resolution weather data (often 5 min. interva
 
 #### Install dependencies
 ```python
-pip install -r requirements.txt
+pip install pandas
 ```
 
 #### TLDR

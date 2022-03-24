@@ -1,141 +1,128 @@
 import re
 
-
 class ConvertToSystem:
     supported_systems = ["metric", "imperial"]
     round_to_decimals = 2
     extract_numbers_pattern = "\d*\.\d+|\d+"
 
-    def __init__(self, system: str):
+    def __init__(self, system):
         if system not in self.supported_systems:
             raise ValueError('unit system not supported')
         else:
             self.system = system
 
-    def temperature(self, temp_string: str):
-        try:
-            fahrenheit = float(re.findall(self.extract_numbers_pattern, temp_string)[0]) if temp_string else 'NA'
-            if self.system == "metric":
-                celsius = (fahrenheit - 32) * 5/9
-                return round(celsius, self.round_to_decimals)
-            else:
-                return fahrenheit
+    def temperature(self, col):
+        for field in col:
+            try:
+                fahrenheit = float(re.findall(self.extract_numbers_pattern, field)[0])
+                if self.system == "metric":
+                    celsius = (fahrenheit - 32) * 5/9
+                    return round(celsius, self.round_to_decimals)
+                else:
+                    return fahrenheit
+            except Exception as e:
+                print(f'{e}! probably caused by an empty row in the data')
+                return None
 
-        except Exception as e:
-            print(f'{e}! probably caused by an empty row in the data')
-            return 'NA'
-            
-    def dew_point(self, dew_point_string: str):
-        try:
-            fahrenheit = float(re.findall(self.extract_numbers_pattern, dew_point_string)[0]) if dew_point_string else 'NA'
-            if self.system == "metric":
-                celsius = (fahrenheit - 32) * 5/9
-                return round(celsius, self.round_to_decimals)
-            else:
-                return fahrenheit
-            
-        except Exception as e:
-            print(f'{e}! probably caused by an empty row in the data')
-            return 'NA'
-
-    def humidity(self, humidity_string: str):
-        try:
-            humidity = float(re.findall(self.extract_numbers_pattern, humidity_string)[0]) if humidity_string else 'NA'
-            return humidity
+    def humidity(self, col):
+        for field in col:
+            try:
+                humidity = float(re.findall(self.extract_numbers_pattern, field)[0])
+                return humidity
         
-        except Exception as e:
-            print(f'{e}! probably caused by an empty row in the data')
-            return 'NA'
+            except Exception as e:
+                print(f'{e}! probably caused by an empty row in the data')
+                return None
 
-    def speed(self, speed_string: str):
-        try:
-            mph = float(re.findall(self.extract_numbers_pattern, speed_string)[0]) if speed_string else 'NA'
-            if self.system == "metric":
-                kmh = mph * 1.609
-                return round(kmh, self.round_to_decimals)
-            else:
-                return mph
+    def speed(self, col):
+        for field in col:
+            try:
+                mph = float(re.findall(self.extract_numbers_pattern, field)[0])
+                if self.system == "metric":
+                    kmh = mph * 1.609
+                    return round(kmh, self.round_to_decimals)
+                else:
+                    return mph
 
-        except Exception as e:
-            print(f'{e}! probably caused by an empty row in the data')
-            return 'NA'
+            except Exception as e:
+                print(f'{e}! probably caused by an empty row in the data')
+                return None
 
-    def pressure(self, pressure_string: str):
-        try:
-            inhg = float(re.findall(self.extract_numbers_pattern, pressure_string)[0]) if pressure_string else 'NA'
-            if self.system == "metric":
-                hpa = inhg * 33.86389
-                return round(hpa, self.round_to_decimals)
-            else:
-                return inhg
+    def pressure(self, col):
+        for field in col:
+            try:
+                inhg = float(re.findall(self.extract_numbers_pattern, field)[0])
+                if self.system == "metric":
+                    hpa = inhg * 33.86389
+                    return round(hpa, self.round_to_decimals)
+                else:
+                    return inhg
                 
-        except Exception as e:
-            print(f'{e}! probably caused by an empty row in the data')
-            return 'NA'
+            except Exception as e:
+                print(f'{e}! probably caused by an empty row in the data')
+                return None
     
-    def precipitation(self, precip_string: str):
-        try:
-            inches = float(re.findall(self.extract_numbers_pattern, precip_string)[0]) if precip_string else 'NA'
-            if self.system == "metric":
-                mm = inches * 25.4
-                return round(mm, self.round_to_decimals)
-            else:
-                return inches
+    def precipitation(self, col):
+        for field in col:
+            try:
+                inches = float(re.findall(self.extract_numbers_pattern, field)[0])
+                if self.system == "metric":
+                    mm = inches * 25.4
+                    return round(mm, self.round_to_decimals)
+                else:
+                    return inches
                 
-        except Exception as e:
-            print(f'{e}! probably caused by an empty row in the data')
-            return 'NA'
+            except Exception as e:
+                print(f'{e}! probably caused by an empty row in the data')
+                return None
 
-    def uv(self, uv_string: str):
-        try:
-            measure = float(re.findall(self.extract_numbers_pattern, uv_string)[0]) if uv_string else 'NA'
-            return measure
+    def uv(self, col):
+        for field in col:
+            try:
+                measure = float(re.findall(self.extract_numbers_pattern, field)[0])
+                return measure
             
-        except Exception as e:
-            print(f'{e}! probably caused by an empty row in the data')
-            return 'NA'
+            except Exception as e:
+                print(f'{e}! probably caused by an empty row in the data')
+                return None
 
-    def solar(self, solar_string: str):
-        try:
-            measure = float(re.findall(self.extract_numbers_pattern, solar_string)[0]) if solar_string else 'NA'
-            return measure
+    def solar(self, col):
+        for field in col:
+            try:
+                measure = float(re.findall(self.extract_numbers_pattern, field)[0])
+                return measure
             
-        except Exception as e:
-            print(f'{e}! probably caused by an empty row in the data')
-            return 'NA'
+            except Exception as e:
+                print(f'{e}! probably caused by an empty row in the data')
+                return None
 
-    def clean_and_convert(self, dict_list: list):
-        converted_dict_list = []
-        for dict in dict_list:
-            converted_dict = {}
-            for key, value in dict.items():
-                if key == 'Date':
-                    converted_dict['Date'] = value
-                if key == 'Time':
-                    converted_dict['Time'] = value
-                if key ==  'Temperature':
-                    converted_dict['Temperature'] = self.temperature(value)
-                if key ==  'Dew_Point':
-                    converted_dict['Dew_Point'] = self.dew_point(value)
-                if key ==  'Humidity':
-                    converted_dict['Humidity'] = self.humidity(value)
-                if key ==  'Wind':
-                    converted_dict['Wind'] = value
-                if key ==  'Speed':
-                    converted_dict['Speed'] = self.speed(value)
-                if key ==  'Gust':
-                    converted_dict['Gust'] = self.speed(value)
-                if key ==  'Pressure':
-                    converted_dict['Pressure'] = self.pressure(value)
-                if key ==  'Precip_Rate':
-                    converted_dict['Precip_Rate'] = self.precipitation(value)
-                if key ==  'Precip_Accum':
-                    converted_dict['Precip_Accum'] = self.precipitation(value)
-                if key ==  'UV':
-                    converted_dict['UV'] = self.uv(value)
-                if key ==  'Solar':
-                    converted_dict['Solar'] = self.solar(value)
+    def clean_and_convert(self, df):
+        #converted_dict_list = []
+        print(len(df))
+        for key in df.columns:
+        #    converted_dict = {}
+            if   key == 'Temperature':
+                df['Temperature']  = self.temperature(df['Temperature'])
+            elif key == 'Dew Point':
+                df['Dew Point']    = self.temperature(df['Dew Point'])
+            elif key == 'Humidity':
+                df['Humidity']     = self.humidity(df['Humidity'])
+            elif key == 'Speed':
+                df['Speed']        = self.speed(df['Speed'])
+            elif key == 'Gust':
+                df['Gust']         = self.speed(df['Gust'] )
+            elif key == 'Pressure':
+                df['Pressure']     = self.pressure(df['Pressure'])
+            elif key == 'Precip. Rate.':
+                df['Precip. Rate.']  = self.precipitation(df['Precip. Rate.'])
+            elif key == 'Precip. Accum.':
+                df['Precip. Accum.'] = self.precipitation(df['Precip. Accum.'])
+            elif key == 'Solar':
+                df['Solar']        = self.solar(df['Solar'] )
+        if self.system == 'metric':
+            df.rename(columns={'Temperature': 'Temperature_C',	'Dew Point': 'Dew_Point_C',	'Humidity': 'Humidity_%',	'Wind': 'Wind',	'Speed': 'Speed_kmh',	'Gust': 'Gust_kmh',	'Pressure': 'Pressure_hPa',	'Precip. Rate.': 'Precip_Rate_mm',	'Precip. Accum.': 'Precip_Accum_mm',	'UV': 'UV',   'Solar': 'Solar_w/m2'}, inplace=True)
+        elif self.system == 'imperial':
+            df.rename(columns={'Temperature': 'Temperature_F',	'Dew Point': 'Dew_Point_F',	'Humidity': 'Humidity_%',	'Wind': 'Wind',	'Speed': 'Speed_mph',	'Gust': 'Gust_mph',	'Pressure': 'Pressure_in',	'Precip. Rate.': 'Precip_Rate_in',	'Precip. Accum.': 'Precip_Accum_in',	'UV': 'UV',   'Solar': 'Solar_w/m2'}, inplace=True)
+            #converted_dict_list.append(converted_dict)
 
-            converted_dict_list.append(converted_dict)
-
-        return converted_dict_list
+        return df

@@ -1,90 +1,58 @@
 # Made with love by Karl
 # Contact me on Telegram: @karlpy
+# Converted to pandas by hamsolo4744
 
-import requests
-import csv
-import lxml.html as lh
-
-import config
-
+import datetime as dt
+import pandas as pd
 from util.UnitConverter import ConvertToSystem
-from util.Parser import Parser
-from util.Utils import Utils
-
-# configuration
-stations_file = open('stations.txt', 'r')
-URLS = stations_file.readlines()
-# Date format: YYYY-MM-DD
-START_DATE = config.START_DATE
-END_DATE = config.END_DATE
-
-# set to "metric" or "imperial"
-UNIT_SYSTEM = config.UNIT_SYSTEM
-# find the first data entry automatically
-FIND_FIRST_DATE = config.FIND_FIRST_DATE
 
 
-def scrap_station(weather_station_url):
+def scrape_station(stationid, start, end=None, units='metric', dropna = True):
+    base =  r'https://www.wunderground.com/dashboard/pws/{0}/table/{1}/{1}/daily'
+    datef = '%Y-%m-%d'
+    blank = dt.datetime.strptime('','')
+    toprow = False
 
-    session = requests.Session()
-    timeout = 5
-    global START_DATE
-    global END_DATE
-    global UNIT_SYSTEM
-    global FIND_FIRST_DATE
+    if end == None:
+        #only allow one row
+        end = start
+        toprow = True
 
-    if FIND_FIRST_DATE:
-        # find first date
-        first_date_with_data = Utils.find_first_data_entry(weather_station_url=weather_station_url, start_date=START_DATE)
-        # if first date found
-        if(first_date_with_data != -1):
-            START_DATE = first_date_with_data
-    
-    url_gen = Utils.date_url_generator(weather_station_url, START_DATE, END_DATE)
-    station_name = weather_station_url.split('/')[-1]
-    file_name = f'{station_name}.csv'
+    datelist = [[base.format(stationid, (start+dt.timedelta(days=i)).strftime(datef)), start+dt.timedelta(days=i)] for i in range((end-start).days + 1)]
+    df = pd.DataFrame()
+    for url, date in datelist:
+        temp = pd.read_html(url)[-1][1:] #its the last table on the page and the first row is NaN
+        # 12:05 PM
+        try:
+            temp['Time'] = [dt.datetime.strptime(i, '%I:%M %p') for i in temp['Time']]
+            temp['td'] = temp['Time']-blank # blank time is 1900, 1, 1, so we subtract that from time to zero the date
+            temp['Datetime'] = temp['td']+date # add the time to the date and you get datetime
+            temp.drop(['Time','td'], axis=1, inplace=True)
+            df = df.append(temp, ignore_index=True)
+        except TypeError:
+            print("No data for {} on {}".format(stationid, date.strftime(datef)))
+            continue
 
-    with open(file_name, 'a+', newline='') as csvfile:
-        fieldnames = ['Date', 'Time',	'Temperature',	'Dew_Point',	'Humidity',	'Wind',	'Speed',	'Gust',	'Pressure',	'Precip_Rate',	'Precip_Accum',	'UV',   'Solar']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    #print(df)
+    df = df.set_index('Datetime')
+    converter = ConvertToSystem(units)
+    df = converter.clean_and_convert(df)
+    if toprow:
+        return df[df.index > start].head(1)
+    else:
+        return df[(df.index > start) & (df.index < end)]
 
-        # Write the correct headers to the CSV file
-        if UNIT_SYSTEM == "metric":
-            # 12:04 AM	24.4 C	18.3 C	69 %	SW	0.0 km/h	0.0 km/h	1,013.88 hPa	0.00 mm	0.00 mm	0	0 w/m²
-            writer.writerow({'Date': 'Date', 'Time': 'Time',	'Temperature': 'Temperature_C',	'Dew_Point': 'Dew_Point_C',	'Humidity': 'Humidity_%',	'Wind': 'Wind',	'Speed': 'Speed_kmh',	'Gust': 'Gust_kmh',	'Pressure': 'Pressure_hPa',	'Precip_Rate': 'Precip_Rate_mm',	'Precip_Accum': 'Precip_Accum_mm',	'UV': 'UV',   'Solar': 'Solar_w/m2'})
-        elif UNIT_SYSTEM == "imperial":
-            # 12:04 AM	75.9 F	65.0 F	69 %	SW	0.0 mph	0.0 mph	29.94 in	0.00 in	0.00 in	0	0 w/m²
-            writer.writerow({'Date': 'Date', 'Time': 'Time',	'Temperature': 'Temperature_F',	'Dew_Point': 'Dew_Point_F',	'Humidity': 'Humidity_%',	'Wind': 'Wind',	'Speed': 'Speed_mph',	'Gust': 'Gust_mph',	'Pressure': 'Pressure_in',	'Precip_Rate': 'Precip_Rate_in',	'Precip_Accum': 'Precip_Accum_in',	'UV': 'UV',   'Solar': 'Solar_w/m2'})
-        else:
-            raise Exception("please set 'unit_system' to either \"metric\" or \"imperial\"! ")
-
-        for date_string, url in url_gen:
-            try:
-                print(f'Scraping data from {url}')
-                history_table = False
-                while not history_table:
-                    html_string = session.get(url, timeout=timeout)
-                    doc = lh.fromstring(html_string.content)
-                    history_table = doc.xpath('//*[@id="main-page-content"]/div/div/div/lib-history/div[2]/lib-history-table/div/div/div/table/tbody')
-                    if not history_table:
-                        print("refreshing session")
-                        session = requests.Session()
-
-                # parse html table rows
-                data_rows = Parser.parse_html_table(date_string, history_table)
-
-                # convert to metric system
-                converter = ConvertToSystem(UNIT_SYSTEM)
-                data_to_write = converter.clean_and_convert(data_rows)
-                    
-                print(f'Saving {len(data_to_write)} rows')
-                writer.writerows(data_to_write)
-            except Exception as e:
-                print(e)
-
-
-
-for url in URLS:
-    url = url.strip()
-    print(url)
-    scrap_station(url)
+if __name__ == '__main__':    
+    start = dt.datetime(2022, 3, 23, 8)
+    end   = dt.datetime(2022, 3, 23, 10)
+    savepath = r'Weather data {} From {} To {}.csv'
+    dtformat = '%Y-%m-%d %H-%M'
+    with open('stations.txt', 'r', encoding='utf8') as f:
+        stations = [i.strip() for i in f.read().split('\n')]
+    for stationid in stations:
+        try:
+            scrape_station(stationid, start,end).to_csv(savepath.format(stationid, start.strftime(dtformat), end.strftime(dtformat)))
+        except KeyError:
+            print('Skipped {} due to KeyError, didnt read table'.format(stationid))
+        except Exception as e:
+            print('Skipped {} due to {}'.format(stationid, e))
