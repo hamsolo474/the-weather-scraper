@@ -7,7 +7,7 @@ import pandas as pd
 from util.UnitConverter import ConvertToSystem
 
 
-def scrape_station(stationid, start, end=None, units='metric', dropna = True):
+def scrape_station(stationid, start, end=None, units='metric'):
     base =  r'https://www.wunderground.com/dashboard/pws/{0}/table/{1}/{1}/daily'
     datef = '%Y-%m-%d'
     blank = dt.datetime.strptime('','')
